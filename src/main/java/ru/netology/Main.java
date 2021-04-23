@@ -2,22 +2,24 @@ package ru.netology;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 import com.opencsv.CSVReader;
 import com.opencsv.bean.ColumnPositionMappingStrategy;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvValidationException;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -105,7 +107,34 @@ public class Main {
         return list;
     }
 
-    public static void main(String[] args) throws CsvValidationException, ParserConfigurationException, IOException, SAXException {
+    public static String readString(String fileName) {
+        try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+            StringBuilder jsonLine = new StringBuilder();
+            String s;
+            while ((s = br.readLine()) != null) {
+                jsonLine.append(s);
+            }
+            return jsonLine.toString().replace(" ","");
+        } catch (IOException ex) {
+            System.out.println(ex.getMessage());
+            return null;
+        }
+    }
+
+    public static List<Employee> jsonToList(String json) throws ParseException {
+        List<Employee> list = new ArrayList<>();
+        GsonBuilder builder = new GsonBuilder();
+        JSONParser parser = new JSONParser();
+        Gson gson = builder.create();
+        JSONArray employeeArray = (JSONArray) parser.parse(json);
+        for (Object jsonObject: employeeArray) {
+            Employee employee = gson.fromJson(jsonObject.toString(), Employee.class);
+            list.add(employee);
+        }
+        return list;
+    }
+
+    public static void main(String[] args) throws CsvValidationException, ParserConfigurationException, IOException, SAXException, ParseException {
         //Task1
         String[] columnMapping = {"id", "firstName", "lastName", "country", "age"};
         List<Employee> list = parseCSV(columnMapping, "data.csv");
@@ -116,5 +145,12 @@ public class Main {
         list = parseXML("data.xml");
         json = listToJson(list);
         writeString(json, "data2.json");
+
+        //Task3
+        json = readString("data3.json");
+        list = jsonToList(json);
+        for (Employee employee: list) {
+            System.out.println(employee);
+        }
     }
 }
