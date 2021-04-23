@@ -8,11 +8,18 @@ import com.opencsv.bean.ColumnPositionMappingStrategy;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvValidationException;
+import org.w3c.dom.*;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
@@ -40,8 +47,8 @@ public class Main {
         return json;
     }
 
-    public static void writeString(String json) {
-        try (FileWriter file = new FileWriter("data.json")) {
+    public static void writeString(String json, String jsonFileName) {
+        try (FileWriter file = new FileWriter(jsonFileName)) {
             file.write(json);
             file.flush();
         }
@@ -50,11 +57,64 @@ public class Main {
         }
     }
 
-    public static void main(String[] args) throws CsvValidationException {
+    public static List<Employee> parseXML(String fileName) throws ParserConfigurationException, IOException, SAXException {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.parse(new File(fileName));
+        NodeList employeeNodeList = doc.getDocumentElement().getElementsByTagName("employee");
+
+        List<Employee> list = new ArrayList<>();
+        Employee employee;
+        long id = 0;
+        String firstName = null;
+        String lastName = null;
+        String country = null;
+        int age = 0;
+
+        for (int i = 0; i < employeeNodeList.getLength(); i++) {
+            Node node = employeeNodeList.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                NodeList empElementNodeList = node.getChildNodes();
+                for (int j = 0; j < empElementNodeList.getLength(); j++) {
+                    Node empVarNode = empElementNodeList.item(j);
+                    if (empVarNode.getNodeType() == Node.ELEMENT_NODE) {
+                        String empVarName = empVarNode.getNodeName();
+                        String empVarValue = empVarNode.getTextContent();
+                        switch (empVarName) {
+                            case ("id"):
+                                id = Integer.parseInt(empVarValue);
+                                break;
+                            case ("firstName"):
+                                firstName = empVarValue;
+                                break;
+                            case ("lastName"):
+                                lastName = empVarValue;
+                                break;
+                            case ("country"):
+                                country = empVarValue;
+                                break;
+                            case ("age"):
+                                age = Integer.parseInt(empVarValue);
+                        }
+                    }
+                }
+                employee = new Employee(id, firstName, lastName, country, age);
+                list.add(employee);
+            }
+        }
+        return list;
+    }
+
+    public static void main(String[] args) throws CsvValidationException, ParserConfigurationException, IOException, SAXException {
+        //Task1
         String[] columnMapping = {"id", "firstName", "lastName", "country", "age"};
-        String fileName = "data.csv";
-        List<Employee> list = parseCSV(columnMapping, fileName);
+        List<Employee> list = parseCSV(columnMapping, "data.csv");
         String json = listToJson(list);
-        writeString(json);
+        writeString(json, "data.json");
+
+        //Task2
+        list = parseXML("data.xml");
+        json = listToJson(list);
+        writeString(json, "data2.json");
     }
 }
